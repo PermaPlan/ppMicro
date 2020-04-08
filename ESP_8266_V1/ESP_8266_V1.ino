@@ -1,5 +1,6 @@
 #include "DHT.h"
 #include <ESP8266WiFi.h>
+// #include <ESP8266Ping.h> // to ping a host with Ping.ping("www.google.de")
 #include <ESP8266HTTPClient.h>
 #include <ArduinoJson.h>
 #include <WiFiUdp.h>
@@ -7,7 +8,7 @@
 
 #define DHTPIN D4                     // what pin we're connected to
 #define DHTTYPE DHT11                 // DHT 11
-#define durationSleep  5              // sleep time in [s]
+#define durationSleep  5           // sleep time in [s]
 
 DHT dht(DHTPIN, DHTTYPE);             // initialize DHT sensor
 
@@ -22,11 +23,13 @@ const char* password = "!PienzNet5-2OG";
 ////// Mac-adress //////
 byte mac[6];
 
-////// Web-CLient //////
-//const String host = "http://192.168.178.115";
-const String host = "http://192.168.178.125";
-//const String host = "http://192.168.178.128";
-const String port = ":5000";
+////// Web-Client //////
+//const String host = "http://192.168.178.115"; // local
+//const String host = "http://192.168.178.125"; // local 
+//const String host = "http://192.168.178.128"; // local 
+const String host = "http://permaplandata.azurewebsites.net"; // azure student web-server
+// const String port = ":5000"; // not needed for azure server (see next line)
+const String port = ""; // empty string for port
 const String url = "/add/sensor-value";
 
 ////// NTP-Client //////
@@ -96,30 +99,18 @@ void wifiConnect() {
   // Print the IP address
   Serial.print("Host IP-address: ");
   Serial.println(WiFi.localIP());
-
   //Print d1 minis mac adress
-  WiFi.macAddress(mac);
-  Serial.print("D1mini MAC-adress: ");
-  Serial.print(mac[0], HEX);
-  Serial.print(":");
-  Serial.print(mac[1], HEX);
-  Serial.print(":");
-  Serial.print(mac[2], HEX);
-  Serial.print(":");
-  Serial.print(mac[3], HEX);
-  Serial.print(":");
-  Serial.print(mac[4], HEX);
-  Serial.print(":");
-  Serial.println(mac[5], HEX);
+  Serial.println("D1mini MAC-adress: " + WiFi.macAddress());
+
 }
 
 void postData(JsonArray t, JsonArray h, JsonArray hi, JsonArray moi, JsonArray moi_or, long ts, DynamicJsonDocument doc) {
 
 
   Serial.print("Posting data to: ");
-  Serial.print(host);
-  Serial.print(port);
-  Serial.println(url);
+  Serial.println(host + port + url);
+  //Serial.print(port);
+  //Serial.println(url);
   serializeJsonPretty(doc, Serial);
 
   char JSONmessageBuffer[2048];
