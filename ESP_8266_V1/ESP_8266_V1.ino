@@ -1,56 +1,90 @@
-#include "DHT.h"
-#include <ESP8266WiFi.h>
-// #include <ESP8266Ping.h> // to ping a host with Ping.ping("www.google.de")
-#include <ESP8266HTTPClient.h>
-#include <ArduinoJson.h>
-#include <WiFiUdp.h>
-#include <NTPClient.h>
-
-#define DHTPIN D4                     // what pin we're connected to
-#define DHTTYPE DHT11                 // DHT 11
-#define durationSleep  5           // sleep time in [s]
-
-DHT dht(DHTPIN, DHTTYPE);             // initialize DHT sensor
-
-////// Network SSID //////
-//const char* ssid = "Nemo";
-//const char* password = "wasfuereinschoenername";
-const char* ssid = "PienzNet5";
-const char* password = "!PienzNet5-2OG";
-//const char* ssid = "obenW";
-//const char* password = "BBWFBUJOSYYHENVL";
-
-////// Mac-adress //////
-byte mac[6];
-
-////// Web-Client //////
-//const String host = "http://192.168.178.115"; // local
-//const String host = "http://192.168.178.125"; // local 
-//const String host = "http://192.168.178.128"; // local 
-const String host = "http://permaplandata.azurewebsites.net"; // azure student web-server
-// const String port = ":5000"; // not needed for azure server (see next line)
-const String port = ""; // empty string for port
-const String url = "/add/sensor-value";
-
-////// NTP-Client //////
-const long utcOffset = 0;          //  time zone: UTC +1 in seconds // for unix time: 0 s
-WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffset);
+/////////////////////////////////////////////
+/////------- Perma Plan Sensoren -------/////
+// by Faro Schäfer                         //
+// Version: V1                             //  
+// Code for sensor with Wifi Communication //
+/////////////////////////////////////////////
 
 
-////// OTHER //////
-const int datapoints_max = 10;        // amount of datapoints per wake up
+////// Include Libraries //////
+
+  #include "DHT.h"                                                              // DHT sensor
+  #include <ESP8266WiFi.h>                                                      // ESP8266 
+  // #include <ESP8266Ping.h> // to ping a host with Ping.ping("www.google.de") // Just for test purposes
+  #include <ESP8266HTTPClient.h>                                                // 
+  #include <ArduinoJson.h>                                                      // Arduino JSON V.6.
+  #include <WiFiUdp.h>                                                          // 
+  #include <NTPClient.h>                                                        // For Timestamp ( I think this is a special github version )
+
+////// INPUT //////
+
+  /// Sensor Inputs /// 
+  
+    #define durationSleep 3600           // sleep time in [s]
+    const int datapoints_max = 3;        // amount of measured datapoints per wake up
+    int min_moi = 400;                   // minimal analoug value from moisture sensor tuning
+    int max_moi = 850;                   // maximal analoug value from moisture sensor tuning
+
+  /// Network ID ///
+    
+    //const char* ssid = "Nemo";
+    //const char* password = "wasfuereinschoenername";
+    
+    const char* ssid = "PienzNet5";
+    const char* password = "!PienzNet5-2OG";
+    
+    //const char* ssid = "obenW";
+    //const char* password = "BBWFBUJOSYYHENVL";
+  
+  /// Web-Client ///
+
+    /// Local:
+    //const String host = "http://192.168.178.115"; // local
+    //const String host = "http://192.168.178.125"; // local Simon Mac
+    //const String host = "http://192.168.178.128"; // local 
+    //const String port = ":5000"; 
+    //const String url = "/add/sensor-value";
+
+    /// Azure:
+    const String host = "http://permaplandata.azurewebsites.net"; // azure student web-server
+    const String port = "";                                       // empty string for port
+    const String url = "/add/sensor-value";
+    
+  /// NTP-Client ////
+  
+    const long utcOffset = 0;          //  time zone: UTC +1 in seconds // for unix time: 0 s
+
+////// Initialization //////
+
+  /// DHT11 Sensor ///
+
+    #define DHTPIN D4                     // what pin DHT 11 is connected to
+    #define DHTTYPE DHT11                 // DHT 11
+    DHT dht(DHTPIN, DHTTYPE);             // initialize DHT sensor
+
+  /// NTP Client ///
+
+    WiFiUDP ntpUDP;
+    NTPClient timeClient(ntpUDP, "pool.ntp.org", utcOffset);
+
+  /// LEDs ///
+  
+    //pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
+
+////// Preallocation //////
 
 const size_t CAPACITY = JSON_ARRAY_SIZE(datapoints_max);
 
 
-//--------------------------------------------------------------------------------------------//
+//////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////Functions/////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////
 
 void setup() {
 
-  //pinMode(LED_BUILTIN, OUTPUT);     // Initialize the LED_BUILTIN pin as an output
   //digitalWrite(LED_BUILTIN, HIGH);
   //delay(100);
+  
   Serial.begin(9600);               // Set bauD rate
   while (!Serial) {
     ;                               // wait for serial communication to be build up
@@ -85,7 +119,7 @@ void wifiConnect() {
       delay(500);
       Serial.print(".");
       connectionTry++;
-      if ( connectionTry >= 50 ) {
+      if ( connectionTry >= 10 ) {
         Serial.println("Connection not possible");
         Serial.print("Restarting ESP ... ");
         ESP.restart();
@@ -96,10 +130,8 @@ void wifiConnect() {
   Serial.print("\nWiFi connected to '");
   Serial.print(ssid);
   Serial.println("'");
-  // Print the IP address
   Serial.print("Host IP-address: ");
   Serial.println(WiFi.localIP());
-  //Print d1 minis mac adress
   Serial.println("D1mini MAC-adress: " + WiFi.macAddress());
 
 }
@@ -109,8 +141,7 @@ void postData(JsonArray t, JsonArray h, JsonArray hi, JsonArray moi, JsonArray m
 
   Serial.print("Posting data to: ");
   Serial.println(host + port + url);
-  //Serial.print(port);
-  //Serial.println(url);
+
   serializeJsonPretty(doc, Serial);
 
   char JSONmessageBuffer[2048];
@@ -118,8 +149,8 @@ void postData(JsonArray t, JsonArray h, JsonArray hi, JsonArray moi, JsonArray m
 
   HTTPClient http;
 
-  http.begin(host + port + url);      //Specify request destination
-  http.addHeader("Content-Type", "application/json");  //Specify content-type header
+  http.begin(host + port + url);                        //Specify request destination
+  http.addHeader("Content-Type", "application/json");   //Specify content-type header
 
   int httpCode = http.POST(JSONmessageBuffer);   //Send the request
   String payload = http.getString();             //Get the response payload
@@ -147,11 +178,8 @@ void readSensors() {
   for (int i = 0; i < datapoints_max; i++)
   {
 
-    //Serial.print("Measuring data point ");
-    //Serial.println(i+1);
-
     int moi_or = analogRead(A0);                        // read capacitive soil moisture
-    int moi = map(moi_or, 400, 850, 100, 0);            // map from 0% to 100%
+    int moi = map(moi_or, min_moi, max_moi, 100, 0);    // map from 0% to 100% [rF]
     float t = dht.readTemperature();                    // read air temperature
     float h = dht.readHumidity();                       // read air humidity
     float hi = dht.computeHeatIndex(t, h, false);       // Compute heat index in Celsius (isFahreheit = false)
@@ -174,16 +202,13 @@ void readSensors() {
     }
   }
 
-
   timeClient.update();
   long ts = timeClient.getEpochTime();    // unix time stamp
   doc["timestamp"] = ts;
-
+  
+  Serial.print('Timestamp: ');
   Serial.println(ts);
-  //JsonObject obj = doc.to<JsonObject>();
-  //serializeJson(doc, Serial);
-  //Serial.println(obj);
-  //Serial.println(doc);
+  
   postData(air_temperature, air_humidity, heat_index_C, soil_moisture, soil_moisture_analog, ts, doc);
 
 }
