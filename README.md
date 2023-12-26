@@ -1,9 +1,10 @@
 # ppMicro
 Microcontroller source codes.
 
-The electronic circuit is given as ![](Prototype_sensor_permaplan.png).
+This repository contains the source codes that will be loaded onto the respective micro-controllers using Arduino-IDE.
 
-This repository contains the source codes that will be loaded onto the respective micro-controllers using Arduino-IDE
+The electronic circuit of the micro controller is given as:\
+<img src="Prototype_sensor_permaplan.png" width="400">
 
 ESP_8266_V1: \
 &emsp;	Installed Sensors: DHT11, Moisture Sensor \
