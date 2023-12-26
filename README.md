@@ -1,6 +1,8 @@
 # ppMicro
 Microcontroller source codes.
 
+The electronic circuit is given as ![](Prototype_sensor_permaplan.png).
+
 This repository contains the source codes that will be loaded onto the respective micro-controllers using Arduino-IDE
 
 ESP_8266_V1: \
