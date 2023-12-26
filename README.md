@@ -1,5 +1,6 @@
 # ppMicro
-Microcontroller source codes
+Microcontroller source codes.
+
 This repository contains the source codes that will be loaded onto the respective micro-controllers using Arduino-IDE
 
 ESP_8266_V1: 
