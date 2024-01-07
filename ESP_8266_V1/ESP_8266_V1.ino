@@ -8,19 +8,20 @@
 
 ////// Include Libraries //////
 
-  #include "DHT.h"                                                              // DHT sensor
+  #include "DHT.h"                                                              // DHT sensor library by Adafruit (V 1.4.6)
   #include <ESP8266WiFi.h>                                                      // ESP8266 
   // #include <ESP8266Ping.h> // to ping a host with Ping.ping("www.google.de") // Just for test purposes
   #include <ESP8266HTTPClient.h>                                                // 
-  #include <ArduinoJson.h>                                                      // Arduino JSON V.6.
+  #include <ArduinoJson.h>                                                      // ArduinoJson by Benoit Blanchon (V 6.1)
   #include <WiFiUdp.h>                                                          // 
-  #include <NTPClient.h>                                                        // For Timestamp ( I think this is a special github version )
+  #include <NTPClient.h>                                                        // NTPClient by Fabrice Weinberg (V 3.2.1)
+  #include <WiFiClient.h>                                     
 
 ////// INPUT //////
 
   /// Sensor Inputs /// 
   
-    #define durationSleep 3600           // sleep time in [s]
+    #define durationSleep 10           // sleep time in [s]
     const int datapoints_max = 3;        // amount of measured datapoints per wake up
     int min_moi = 400;                   // minimal analoug value from moisture sensor tuning
     int max_moi = 850;                   // maximal analoug value from moisture sensor tuning
@@ -30,8 +31,17 @@
     //const char* ssid = "Nemo";
     //const char* password = "wasfuereinschoenername";
     
-    const char* ssid = "PienzNet5";
-    const char* password = "!PienzNet5-2OG";
+    //const char* ssid = "PienzNet5";
+    //const char* password = "!PienzNet5-2OG";
+
+    //const char* ssid = "RatzeRatzeRaFatz";
+    //const char* password = "wieheisstdieschnellstemausvonmexiko?";
+
+    const char* ssid = "UPC34FF5D4";
+    const char* password = "zxmmUzumjc3j";
+
+    //const char* ssid = "Affenkaffee";
+    //const char* password = "123456789";
     
     //const char* ssid = "obenW";
     //const char* password = "BBWFBUJOSYYHENVL";
@@ -42,13 +52,14 @@
     //const String host = "http://192.168.178.115"; // local
     //const String host = "http://192.168.178.125"; // local Simon Mac
     //const String host = "http://192.168.178.128"; // local 
-    //const String port = ":5000"; 
-    //const String url = "/add/sensor-value";
+    const String host = "http://192.168.178.20"; // XPS Faro
+    const String port = ":5000"; 
+    const String url = "/add/sensor-value";
 
     /// Azure:
-    const String host = "http://permaplandata.azurewebsites.net"; // azure student web-server
-    const String port = "";                                       // empty string for port
-    const String url = "/add/sensor-value";
+    //const String host = "http://permaplandata.azurewebsites.net"; // azure student web-server
+    //const String port = "";                                       // empty string for port
+    //const String url = "/add/sensor-value";
     
   /// NTP-Client ////
   
@@ -86,6 +97,7 @@ void setup() {
   //delay(100);
   
   Serial.begin(9600);               // Set bauD rate
+  Serial.setDebugOutput(true);
   while (!Serial) {
     ;                               // wait for serial communication to be build up
   }
@@ -149,7 +161,9 @@ void postData(JsonArray t, JsonArray h, JsonArray hi, JsonArray moi, JsonArray m
 
   HTTPClient http;
 
-  http.begin(host + port + url);                        //Specify request destination
+  WiFiClient wifiClient;
+
+  http.begin(wifiClient, host + port + url);                        //Specify request destination
   http.addHeader("Content-Type", "application/json");   //Specify content-type header
 
   int httpCode = http.POST(JSONmessageBuffer);   //Send the request
